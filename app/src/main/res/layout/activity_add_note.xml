@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/addRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Header -->
+        <TextView
+            android:id="@+id/addHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nowa notatka"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:paddingBottom="10dp"/>
+
+        <TextView
+            android:id="@+id/addSubtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Dodaj tytuł, nagranie i opcjonalnie zdjęcie."
+            android:alpha="0.75"
+            android:paddingBottom="16dp"/>
+
+        <!-- Title Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Tytuł"
+                    android:textStyle="bold"
+                    android:paddingBottom="8dp"/>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/titleInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:counterEnabled="true"
+                    app:counterMaxLength="40">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/titleEdit"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="np. Zakupy / Pomysł / Przypomnienie"
+                        android:maxLines="1"
+                        android:inputType="textCapSentences"/>
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Audio Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Nagranie"
+                    android:textStyle="bold"
+                    android:paddingBottom="10dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/recordBtn"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Nagraj"
+                        app:icon="@android:drawable/ic_btn_speak_now"
+                        app:iconGravity="textStart"
+                        app:iconPadding="10dp"/>
+
+                    <Space
+                        android:layout_width="12dp"
+                        android:layout_height="1dp"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/stopBtn"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Stop"
+                        android:enabled="false"
+                        app:icon="@android:drawable/ic_media_pause"
+                        app:iconGravity="textStart"
+                        app:iconPadding="10dp"/>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/audioStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Brak nagrania"
+                    android:alpha="0.8"
+                    android:paddingTop="10dp"/>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Photo Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="18dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Zdjęcie (opcjonalnie)"
+                    android:textStyle="bold"
+                    android:paddingBottom="10dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/addPhotoBtn"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Dodaj"
+                        app:icon="@android:drawable/ic_menu_camera"
+                        app:iconGravity="textStart"
+                        app:iconPadding="10dp"/>
+
+                    <Space
+                        android:layout_width="12dp"
+                        android:layout_height="1dp"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/removePhotoBtn"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Usuń"
+                        android:enabled="false"
+                        app:icon="@android:drawable/ic_menu_delete"
+                        app:iconGravity="textStart"
+                        app:iconPadding="10dp"/>
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/photoPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="190dp"
+                    android:layout_marginTop="12dp"
+                    android:scaleType="centerCrop"
+                    android:background="@android:color/darker_gray"
+                    android:contentDescription="Photo preview"
+                    android:visibility="gone"/>
+
+                <TextView
+                    android:id="@+id/photoStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Brak zdjęcia"
+                    android:alpha="0.8"
+                    android:paddingTop="10dp"/>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Bottom buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/saveBtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Zapisz"
+                android:enabled="false"
+                app:icon="@android:drawable/ic_menu_save"
+                app:iconGravity="textStart"
+                app:iconPadding="10dp"/>
+
+            <Space
+                android:layout_width="12dp"
+                android:layout_height="1dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/cancelBtn"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Anuluj"/>
+        </LinearLayout>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>
