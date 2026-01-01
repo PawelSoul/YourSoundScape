@@ -1,5 +1,6 @@
 package com.example.yoursoundscape.ui
 
+import android.graphics.BitmapFactory
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -32,21 +33,35 @@ class NotesAdapter(
     }
 
     override fun onBindViewHolder(holder: NoteVH, position: Int) {
-        val note = items[position]
-        holder.bind(note)
-        holder.itemView.setOnClickListener { onClick(note) }
+        holder.bind(items[position])
     }
 
     override fun getItemCount(): Int = items.size
 
     inner class NoteVH(private val binding: ItemNoteBinding) : RecyclerView.ViewHolder(binding.root) {
+
         fun bind(note: Note) {
-            binding.noteTitle.text = "Notatka #${note.id}"
+            // Tytuł: #id + tytuł
+            binding.noteTitle.text = "#${note.id} ${note.title}"
+
+            // Podtytuł: data + czas nagrania
             val date = dateFormat.format(Date(note.createdAt))
             binding.noteSubtitle.text = "$date • ${note.durationSeconds}s"
 
-            // Na razie zawsze ta sama ikonka. Zdjęcia podłączymy później.
-            // binding.noteImage.setImage... (później)
+            // Miniatura zdjęcia (jeśli jest)
+            if (!note.imagePath.isNullOrBlank()) {
+                val bmp = BitmapFactory.decodeFile(note.imagePath)
+                if (bmp != null) {
+                    binding.noteImage.setImageBitmap(bmp)
+                } else {
+                    binding.noteImage.setImageResource(android.R.drawable.ic_menu_gallery)
+                }
+            } else {
+                binding.noteImage.setImageResource(android.R.drawable.ic_menu_gallery)
+            }
+
+            // Klik w element
+            binding.root.setOnClickListener { onClick(note) }
         }
     }
 }

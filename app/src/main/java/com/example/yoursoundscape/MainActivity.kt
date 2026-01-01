@@ -24,6 +24,14 @@ import android.content.Intent
 import androidx.activity.result.contract.ActivityResultContracts
 import android.app.Activity
 
+import android.media.MediaPlayer
+import android.view.LayoutInflater
+import android.widget.ImageView
+import android.widget.TextView
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.button.MaterialButton
+import android.graphics.BitmapFactory
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
@@ -51,7 +59,7 @@ class MainActivity : AppCompatActivity() {
 
         // 3) Adapter + RecyclerView
         adapter = NotesAdapter { note ->
-            Log.d("YourSoundScape", "Clicked note id=${note.id}")
+            showNotePreview(note)
         }
 
         binding.notesRecycler.layoutManager = LinearLayoutManager(this)
@@ -91,4 +99,78 @@ class MainActivity : AppCompatActivity() {
         val notes = withContext(Dispatchers.IO) { dao.getAll() }
         adapter.submitList(notes)
     }
+
+    private fun showNotePreview(note: com.example.yoursoundscape.data.Note) {
+        val dialog = BottomSheetDialog(this)
+
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_note_preview, null)
+        dialog.setContentView(view)
+
+        val titleText = view.findViewById<TextView>(R.id.previewTitle)
+        val imageView = view.findViewById<ImageView>(R.id.previewImage)
+        val noImageText = view.findViewById<TextView>(R.id.noImageText)
+        val playPauseBtn = view.findViewById<MaterialButton>(R.id.playPauseBtn)
+
+        titleText.text = note.title
+
+        // Zdjęcie
+        if (!note.imagePath.isNullOrBlank()) {
+            val bmp = BitmapFactory.decodeFile(note.imagePath)
+            if (bmp != null) {
+                imageView.setImageBitmap(bmp)
+                imageView.visibility = android.view.View.VISIBLE
+                noImageText.visibility = android.view.View.GONE
+            } else {
+                imageView.visibility = android.view.View.GONE
+                noImageText.visibility = android.view.View.VISIBLE
+            }
+        } else {
+            imageView.visibility = android.view.View.GONE
+            noImageText.visibility = android.view.View.VISIBLE
+        }
+
+        // Audio (play/pause)
+        var player: MediaPlayer? = null
+        var isPlaying = false
+
+        fun stopPlayer() {
+            player?.release()
+            player = null
+            isPlaying = false
+            playPauseBtn.text = "Odtwórz"
+        }
+
+        playPauseBtn.setOnClickListener {
+            if (!isPlaying) {
+                try {
+                    if (player == null) {
+                        player = MediaPlayer().apply {
+                            setDataSource(note.audioPath)
+                            prepare()
+                            setOnCompletionListener {
+                                stopPlayer()
+                            }
+                        }
+                    }
+                    player?.start()
+                    isPlaying = true
+                    playPauseBtn.text = "Pauza"
+                } catch (e: Exception) {
+                    stopPlayer()
+                    playPauseBtn.text = "Błąd odtwarzania"
+                }
+            } else {
+                player?.pause()
+                isPlaying = false
+                playPauseBtn.text = "Odtwórz"
+            }
+        }
+
+        dialog.setOnDismissListener {
+            stopPlayer()
+        }
+
+        dialog.show()
+    }
+
 }

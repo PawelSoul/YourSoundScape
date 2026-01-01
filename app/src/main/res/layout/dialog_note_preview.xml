@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/previewTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Tytuł"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:paddingBottom="10dp"/>
+
+    <ImageView
+        android:id="@+id/previewImage"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:scaleType="centerCrop"
+        android:visibility="gone"
+        android:contentDescription="Zdjęcie notatki"/>
+
+    <TextView
+        android:id="@+id/noImageText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Brak zdjęcia"
+        android:alpha="0.7"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/playPauseBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Odtwórz"
+        android:layout_marginTop="6dp"/>
+
+</LinearLayout>
