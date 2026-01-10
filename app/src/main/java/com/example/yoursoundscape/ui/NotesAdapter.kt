@@ -2,7 +2,9 @@ package com.example.yoursoundscape.ui
 
 import android.graphics.BitmapFactory
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.yoursoundscape.data.Note
 import com.example.yoursoundscape.databinding.ItemNoteBinding
@@ -11,7 +13,8 @@ import java.util.Date
 import java.util.Locale
 
 class NotesAdapter(
-    private val onClick: (Note) -> Unit
+    private val onClick: (Note) -> Unit,
+    private val onLongClick: (Note) -> Unit
 ) : RecyclerView.Adapter<NotesAdapter.NoteVH>() {
 
     private val items = mutableListOf<Note>()
@@ -33,35 +36,50 @@ class NotesAdapter(
     }
 
     override fun onBindViewHolder(holder: NoteVH, position: Int) {
-        holder.bind(items[position])
+        holder.bind(items[position], onClick, onLongClick, dateFormat)
     }
 
     override fun getItemCount(): Int = items.size
 
-    inner class NoteVH(private val binding: ItemNoteBinding) : RecyclerView.ViewHolder(binding.root) {
+    class NoteVH(
+        private val binding: ItemNoteBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(note: Note) {
-            // Tytuł: #id + tytuł
-            binding.noteTitle.text = "#${note.id} ${note.title}"
+        fun bind(
+            note: Note,
+            onClick: (Note) -> Unit,
+            onLongClick: (Note) -> Unit,
+            dateFormat: SimpleDateFormat
+        ) {
+            binding.noteTitle.text = note.title
 
-            // Podtytuł: data + czas nagrania
-            val date = dateFormat.format(Date(note.createdAt))
-            binding.noteSubtitle.text = "$date • ${note.durationSeconds}s"
+            val dateText = dateFormat.format(Date(note.createdAt))
+            val durText = if (note.durationSeconds > 0) "${note.durationSeconds}s" else "—"
+            binding.noteSubtitle.text = "$dateText • $durText"
 
-            // Miniatura zdjęcia (jeśli jest)
-            if (!note.imagePath.isNullOrBlank()) {
-                val bmp = BitmapFactory.decodeFile(note.imagePath)
+            val imgPath = note.imagePath
+            if (imgPath.isNullOrBlank()) {
+                binding.noteImage.setImageResource(android.R.drawable.ic_menu_gallery)
+                binding.noteImage.scaleType = ImageView.ScaleType.CENTER_INSIDE
+                binding.noteNoImageText.visibility = View.VISIBLE
+            } else {
+                val bmp = BitmapFactory.decodeFile(imgPath)
                 if (bmp != null) {
                     binding.noteImage.setImageBitmap(bmp)
+                    binding.noteImage.scaleType = ImageView.ScaleType.CENTER_CROP
+                    binding.noteNoImageText.visibility = View.GONE
                 } else {
                     binding.noteImage.setImageResource(android.R.drawable.ic_menu_gallery)
+                    binding.noteImage.scaleType = ImageView.ScaleType.CENTER_INSIDE
+                    binding.noteNoImageText.visibility = View.VISIBLE
                 }
-            } else {
-                binding.noteImage.setImageResource(android.R.drawable.ic_menu_gallery)
             }
 
-            // Klik w element
             binding.root.setOnClickListener { onClick(note) }
+            binding.root.setOnLongClickListener {
+                onLongClick(note)
+                true
+            }
         }
     }
 }

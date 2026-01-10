@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -13,30 +12,64 @@
         android:text="Tytuł"
         android:textStyle="bold"
         android:textSize="18sp"
-        android:paddingBottom="10dp"/>
+        android:layout_marginBottom="12dp" />
 
     <ImageView
         android:id="@+id/previewImage"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="180dp"
         android:scaleType="centerCrop"
         android:visibility="gone"
-        android:contentDescription="Zdjęcie notatki"/>
+        android:contentDescription="Zdjęcie" />
 
     <TextView
         android:id="@+id/noImageText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Brak zdjęcia"
-        android:alpha="0.7"
-        android:paddingTop="10dp"
-        android:paddingBottom="10dp"/>
+        android:alpha="0.8"
+        android:layout_marginTop="8dp"
+        android:visibility="gone" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/playPauseBtn"
+    <!-- AUDIO UI -->
+    <LinearLayout
+        android:id="@+id/audioContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Odtwórz"
-        android:layout_marginTop="6dp"/>
+        android:orientation="vertical"
+        android:layout_marginTop="16dp">
+
+        <SeekBar
+            android:id="@+id/audioSeekBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="0" />
+
+        <TextView
+            android:id="@+id/audioTimeText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="00:00 / 00:00"
+            android:alpha="0.8"
+            android:layout_marginTop="6dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/playPauseBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Odtwórz"
+            android:layout_marginTop="10dp" />
+
+        <TextView
+            android:id="@+id/audioErrorText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nagranie niedostępne"
+            android:visibility="gone"
+            android:alpha="0.85"
+            android:layout_marginTop="10dp" />
+
+    </LinearLayout>
 
 </LinearLayout>

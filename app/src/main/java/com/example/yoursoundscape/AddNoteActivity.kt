@@ -1,9 +1,18 @@
 package com.example.yoursoundscape
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
+import android.media.MediaRecorder
+import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import com.example.yoursoundscape.data.AppDatabase
@@ -12,57 +21,62 @@ import com.example.yoursoundscape.databinding.ActivityAddNoteBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-import android.Manifest
-import android.content.pm.PackageManager
-import android.media.MediaRecorder
-import android.os.Build
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import java.io.File
-
-import android.net.Uri
-import androidx.activity.result.contract.ActivityResultContracts
 import java.io.FileOutputStream
-import android.graphics.BitmapFactory
-
 
 class AddNoteActivity : AppCompatActivity() {
 
+    companion object {
+        const val EXTRA_NOTE_ID = "note_id"
+    }
+
     private lateinit var binding: ActivityAddNoteBinding
 
-    // Na razie „mock” — potem tu wpiszemy realne ścieżki z MediaRecorder / aparatu
+    private var noteId: Int? = null
+    private var originalNote: Note? = null
+
     private var audioPath: String? = null
     private var imagePath: String? = null
+
     private var recorder: MediaRecorder? = null
     private var recordingFile: File? = null
     private var recordingStartMs: Long = 0L
     private var durationSeconds: Int = 0
+
     private val REQ_RECORD_AUDIO = 1001
+
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             if (uri != null) {
-                val savedPath = copyUriToAppFile(uri)
-                imagePath = savedPath
-                showPhotoPreview(savedPath)
+                val newPath = copyUriToAppFile(uri)
+
+                // jeśli jesteśmy w edycji i było stare zdjęcie -> usuń stare z dysku
+                val old = imagePath
+                imagePath = newPath
+                showPhotoPreview(newPath)
 
                 binding.photoStatusText.text = "Dodano zdjęcie"
-                binding.photoPreview.visibility = android.view.View.VISIBLE
+                binding.photoPreview.visibility = View.VISIBLE
                 binding.removePhotoBtn.isEnabled = true
+
+                if (!old.isNullOrBlank() && old != newPath) {
+                    deleteFileIfExists(old)
+                }
 
                 updateSaveEnabled()
             }
         }
-
-
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAddNoteBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        noteId = intent.getIntExtra(EXTRA_NOTE_ID, -1).takeIf { it != -1 }
+
         binding.titleEdit.doAfterTextChanged { updateSaveEnabled() }
+
+        binding.stopBtn.isEnabled = false
 
         binding.recordBtn.setOnClickListener {
             if (hasMicPermission()) startRecording() else requestMicPermission()
@@ -72,29 +86,78 @@ class AddNoteActivity : AppCompatActivity() {
             stopRecording()
         }
 
-
         binding.addPhotoBtn.setOnClickListener {
             pickImageLauncher.launch("image/*")
-
         }
 
         binding.removePhotoBtn.setOnClickListener {
+            val old = imagePath
             imagePath = null
             binding.photoPreview.setImageDrawable(null)
-            binding.photoPreview.visibility = android.view.View.GONE
+            binding.photoPreview.visibility = View.GONE
             binding.photoStatusText.text = "Brak zdjęcia"
             binding.removePhotoBtn.isEnabled = false
+
+            // jeśli usuwamy zdjęcie w edycji -> usuń plik ze storage
+            if (!old.isNullOrBlank()) {
+                deleteFileIfExists(old)
+            }
+
             updateSaveEnabled()
         }
 
-        binding.saveBtn.setOnClickListener { saveNote() }
+        binding.saveBtn.setOnClickListener { saveOrUpdate() }
 
         binding.cancelBtn.setOnClickListener {
             setResult(Activity.RESULT_CANCELED)
             finish()
         }
 
-        updateSaveEnabled()
+        if (noteId != null) {
+            enterEditMode(noteId!!)
+        } else {
+            updateSaveEnabled()
+        }
+    }
+
+    private fun enterEditMode(id: Int) {
+        // audio bez zmian => blokujemy nagrywanie
+        binding.recordBtn.visibility = View.GONE
+        binding.stopBtn.visibility = View.GONE
+        binding.audioStatusText.text = "Audio: bez zmian"
+
+        lifecycleScope.launch {
+            val dao = AppDatabase.getInstance(this@AddNoteActivity).noteDao()
+            val note = withContext(Dispatchers.IO) { dao.getById(id) }
+
+            if (note == null) {
+                Toast.makeText(this@AddNoteActivity, "Nie znaleziono notatki", Toast.LENGTH_SHORT).show()
+                finish()
+                return@launch
+            }
+
+            originalNote = note
+
+            binding.titleEdit.setText(note.title)
+
+            audioPath = note.audioPath
+            durationSeconds = note.durationSeconds
+
+            imagePath = note.imagePath
+            if (!imagePath.isNullOrBlank()) {
+                showPhotoPreview(imagePath!!)
+                binding.photoStatusText.text = "Dodano zdjęcie"
+                binding.photoPreview.visibility = View.VISIBLE
+                binding.removePhotoBtn.isEnabled = true
+            } else {
+                binding.photoPreview.visibility = View.GONE
+                binding.photoStatusText.text = "Brak zdjęcia"
+                binding.removePhotoBtn.isEnabled = false
+            }
+
+            binding.saveBtn.text = "Zaktualizuj"
+            updateSaveEnabled()
+        }
     }
 
     private fun updateSaveEnabled() {
@@ -103,15 +166,14 @@ class AddNoteActivity : AppCompatActivity() {
         binding.saveBtn.isEnabled = titleOk && audioOk
     }
 
-    private fun saveNote() {
+    private fun saveOrUpdate() {
         val title = binding.titleEdit.text?.toString()?.trim().orEmpty()
-        val audio = audioPath
 
         if (title.isBlank()) {
             Toast.makeText(this, "Podaj tytuł", Toast.LENGTH_SHORT).show()
             return
         }
-        if (audio == null) {
+        if (audioPath == null) {
             Toast.makeText(this, "Dodaj nagranie", Toast.LENGTH_SHORT).show()
             return
         }
@@ -120,20 +182,35 @@ class AddNoteActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
-                dao.insert(
-                    Note(
-                        title = title,
-                        audioPath = audio,
-                        imagePath = imagePath,
-                        createdAt = System.currentTimeMillis(),
-                        durationSeconds = durationSeconds
+                val edit = originalNote
+                if (edit == null) {
+                    // ADD
+                    dao.insert(
+                        Note(
+                            title = title,
+                            audioPath = audioPath!!,
+                            imagePath = imagePath,
+                            createdAt = System.currentTimeMillis(),
+                            durationSeconds = durationSeconds
+                        )
                     )
-                )
+                } else {
+                    // EDIT (audio bez zmian)
+                    dao.update(
+                        edit.copy(
+                            title = title,
+                            imagePath = imagePath
+                        )
+                    )
+                }
             }
+
+            Toast.makeText(this@AddNoteActivity, "Zapisano", Toast.LENGTH_SHORT).show()
             setResult(Activity.RESULT_OK)
             finish()
         }
     }
+
     private fun hasMicPermission(): Boolean {
         return ContextCompat.checkSelfPermission(
             this,
@@ -174,7 +251,6 @@ class AddNoteActivity : AppCompatActivity() {
             setAudioEncodingBitRate(128000)
             setAudioSamplingRate(44100)
             setOutputFile(recordingFile!!.absolutePath)
-
             prepare()
             start()
         }
@@ -201,7 +277,10 @@ class AddNoteActivity : AppCompatActivity() {
         val file = recordingFile
         if (file != null && file.exists() && file.length() > 0) {
             audioPath = file.absolutePath
-            durationSeconds = ((System.currentTimeMillis() - recordingStartMs) / 1000).toInt().coerceAtLeast(1)
+            durationSeconds =
+                ((System.currentTimeMillis() - recordingStartMs) / 1000)
+                    .toInt()
+                    .coerceAtLeast(1)
             binding.audioStatusText.text = "Gotowe: ${durationSeconds}s"
         } else {
             audioPath = null
@@ -217,6 +296,7 @@ class AddNoteActivity : AppCompatActivity() {
         super.onStop()
         if (recorder != null) stopRecording()
     }
+
     private fun copyUriToAppFile(uri: Uri): String {
         val dir = getExternalFilesDir("images") ?: filesDir
         val outFile = File(dir, "img_${System.currentTimeMillis()}.jpg")
@@ -233,11 +313,24 @@ class AddNoteActivity : AppCompatActivity() {
         val bmp = BitmapFactory.decodeFile(path)
         if (bmp != null) {
             binding.photoPreview.setImageBitmap(bmp)
-            binding.photoPreview.visibility = android.view.View.VISIBLE
+            binding.photoPreview.visibility = View.VISIBLE
         } else {
-            binding.photoPreview.visibility = android.view.View.GONE
+            binding.photoPreview.visibility = View.GONE
             binding.photoStatusText.text = "Nie udało się wczytać zdjęcia"
         }
     }
 
+    private fun deleteFileIfExists(path: String?) {
+        if (path.isNullOrBlank()) return
+
+        if (path.startsWith("content://")) {
+            runCatching { contentResolver.delete(Uri.parse(path), null, null) }
+            return
+        }
+
+        runCatching {
+            val f = File(path)
+            if (f.exists()) f.delete()
+        }
+    }
 }

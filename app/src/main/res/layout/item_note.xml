@@ -6,7 +6,8 @@
     android:layout_height="wrap_content"
     android:layout_marginBottom="10dp"
     app:cardElevation="2dp"
-    app:strokeWidth="1dp">
+    app:strokeWidth="1dp"
+    app:cardUseCompatPadding="true">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -17,11 +18,26 @@
             android:id="@+id/noteImage"
             android:layout_width="56dp"
             android:layout_height="56dp"
+            android:contentDescription="Zdjęcie notatki"
             android:scaleType="centerCrop"
             android:src="@android:drawable/ic_menu_gallery"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"/>
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <TextView
+            android:id="@+id/noteNoImageText"
+            android:layout_width="56dp"
+            android:layout_height="wrap_content"
+            android:text="brak\nzdjęcia"
+            android:textSize="10sp"
+            android:alpha="0.75"
+            android:textAlignment="center"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="@id/noteImage"
+            app:layout_constraintEnd_toEndOf="@id/noteImage"
+            app:layout_constraintTop_toBottomOf="@id/noteImage"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
         <TextView
             android:id="@+id/noteTitle"
@@ -32,19 +48,20 @@
             android:textSize="16sp"
             android:layout_marginStart="12dp"
             app:layout_constraintStart_toEndOf="@id/noteImage"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            app:layout_constraintTop_toTopOf="@id/noteImage"
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <TextView
             android:id="@+id/noteSubtitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Data • 10s"
+            android:text="2026-01-10 20:12 • 10s"
             android:layout_marginStart="12dp"
             android:layout_marginTop="4dp"
+            android:alpha="0.75"
             app:layout_constraintStart_toEndOf="@id/noteImage"
             app:layout_constraintTop_toBottomOf="@id/noteTitle"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            app:layout_constraintEnd_toEndOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
