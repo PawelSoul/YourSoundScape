@@ -57,28 +57,40 @@ class NotesAdapter(
             val durText = if (note.durationSeconds > 0) "${note.durationSeconds}s" else "—"
             binding.noteSubtitle.text = "$dateText • $durText"
 
+            // --- Miniatura / placeholder ---
             val imgPath = note.imagePath
             if (imgPath.isNullOrBlank()) {
                 binding.noteImage.setImageResource(android.R.drawable.ic_menu_gallery)
                 binding.noteImage.scaleType = ImageView.ScaleType.CENTER_INSIDE
-                binding.noteNoImageText.visibility = View.VISIBLE
             } else {
                 val bmp = BitmapFactory.decodeFile(imgPath)
                 if (bmp != null) {
                     binding.noteImage.setImageBitmap(bmp)
                     binding.noteImage.scaleType = ImageView.ScaleType.CENTER_CROP
-                    binding.noteNoImageText.visibility = View.GONE
                 } else {
                     binding.noteImage.setImageResource(android.R.drawable.ic_menu_gallery)
                     binding.noteImage.scaleType = ImageView.ScaleType.CENTER_INSIDE
-                    binding.noteNoImageText.visibility = View.VISIBLE
                 }
             }
 
+            // --- Klik / Long press ---
             binding.root.setOnClickListener { onClick(note) }
             binding.root.setOnLongClickListener {
                 onLongClick(note)
                 true
+            }
+
+            // ✅ Delikatna animacja pojawienia (tylko raz na ViewHolder, żeby nie migało przy scrollu)
+            val alreadyAnimated = binding.root.getTag(binding.root.id) as? Boolean ?: false
+            if (!alreadyAnimated) {
+                binding.root.alpha = 0f
+                binding.root.animate()
+                    .alpha(1f)
+                    .setDuration(160)
+                    .start()
+                binding.root.setTag(binding.root.id, true)
+            } else {
+                binding.root.alpha = 1f
             }
         }
     }
