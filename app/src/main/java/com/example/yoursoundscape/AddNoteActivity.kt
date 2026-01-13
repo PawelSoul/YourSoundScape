@@ -10,9 +10,11 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import com.example.yoursoundscape.data.AppDatabase
@@ -43,27 +45,32 @@ class AddNoteActivity : AppCompatActivity() {
     private var recordingStartMs: Long = 0L
     private var durationSeconds: Int = 0
 
+    private var pendingCameraFile: File? = null
+
     private val REQ_RECORD_AUDIO = 1001
 
+    // ✅ Galeria
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             if (uri != null) {
                 val newPath = copyUriToAppFile(uri)
+                replaceImagePath(newPath)
+            }
+        }
 
-                // jeśli jesteśmy w edycji i było stare zdjęcie -> usuń stare z dysku
-                val old = imagePath
-                imagePath = newPath
-                showPhotoPreview(newPath)
-
-                binding.photoStatusText.text = "Dodano zdjęcie"
-                binding.photoPreview.visibility = View.VISIBLE
-                binding.removePhotoBtn.isEnabled = true
-
-                if (!old.isNullOrBlank() && old != newPath) {
-                    deleteFileIfExists(old)
+    // ✅ Aparat (zapis do pliku)
+    private val takePhotoLauncher =
+        registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+            if (success) {
+                val f = pendingCameraFile
+                if (f != null && f.exists()) {
+                    replaceImagePath(f.absolutePath)
+                } else {
+                    Toast.makeText(this, "Nie udało się zapisać zdjęcia", Toast.LENGTH_SHORT).show()
                 }
-
-                updateSaveEnabled()
+            } else {
+                // użytkownik anulował
+                pendingCameraFile = null
             }
         }
 
@@ -82,13 +89,10 @@ class AddNoteActivity : AppCompatActivity() {
             if (hasMicPermission()) startRecording() else requestMicPermission()
         }
 
-        binding.stopBtn.setOnClickListener {
-            stopRecording()
-        }
+        binding.stopBtn.setOnClickListener { stopRecording() }
 
-        binding.addPhotoBtn.setOnClickListener {
-            pickImageLauncher.launch("image/*")
-        }
+        // ✅ Zamiast samej galerii: wybór Galeria / Aparat
+        binding.addPhotoBtn.setOnClickListener { showImageSourceDialog() }
 
         binding.removePhotoBtn.setOnClickListener {
             val old = imagePath
@@ -98,11 +102,7 @@ class AddNoteActivity : AppCompatActivity() {
             binding.photoStatusText.text = "Brak zdjęcia"
             binding.removePhotoBtn.isEnabled = false
 
-            // jeśli usuwamy zdjęcie w edycji -> usuń plik ze storage
-            if (!old.isNullOrBlank()) {
-                deleteFileIfExists(old)
-            }
-
+            if (!old.isNullOrBlank()) deleteFileIfExists(old)
             updateSaveEnabled()
         }
 
@@ -120,8 +120,66 @@ class AddNoteActivity : AppCompatActivity() {
         }
     }
 
+    private fun showImageSourceDialog() {
+        val items = arrayOf("Galeria", "Aparat")
+        AlertDialog.Builder(this)
+            .setTitle("Dodaj zdjęcie")
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> pickImageLauncher.launch("image/*")
+                    1 -> openCamera()
+                }
+            }
+            .show()
+    }
+
+    private fun openCamera() {
+        if (!hasCameraPermission()) {
+            requestCameraPermission()
+            return
+        }
+
+        // sprawdź czy w ogóle jest aplikacja aparatu
+        val cameraIntent = android.content.Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE)
+        if (cameraIntent.resolveActivity(packageManager) == null) {
+            Toast.makeText(this, "Brak aplikacji aparatu na urządzeniu", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        try {
+            val dir = getExternalFilesDir("images") ?: filesDir
+            val file = File(dir, "img_${System.currentTimeMillis()}.jpg")
+            pendingCameraFile = file
+
+            val uri = FileProvider.getUriForFile(
+                this,
+                "${packageName}.fileprovider",
+                file
+            )
+
+            takePhotoLauncher.launch(uri)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Nie można uruchomić aparatu: ${e.message}", Toast.LENGTH_LONG).show()
+            e.printStackTrace()
+        }
+    }
+
+
+    private fun replaceImagePath(newPath: String) {
+        val old = imagePath
+        imagePath = newPath
+
+        showPhotoPreview(newPath)
+        binding.photoStatusText.text = "Dodano zdjęcie"
+        binding.photoPreview.visibility = View.VISIBLE
+        binding.removePhotoBtn.isEnabled = true
+
+        if (!old.isNullOrBlank() && old != newPath) deleteFileIfExists(old)
+        updateSaveEnabled()
+    }
+
     private fun enterEditMode(id: Int) {
-        // audio bez zmian => blokujemy nagrywanie
+        // audio bez zmian => ukrywamy nagrywanie
         binding.recordBtn.visibility = View.GONE
         binding.stopBtn.visibility = View.GONE
         binding.audioStatusText.text = "Audio: bez zmian"
@@ -137,7 +195,6 @@ class AddNoteActivity : AppCompatActivity() {
             }
 
             originalNote = note
-
             binding.titleEdit.setText(note.title)
 
             audioPath = note.audioPath
@@ -233,10 +290,18 @@ class AddNoteActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
-        if (requestCode == REQ_RECORD_AUDIO) {
-            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
-            if (granted) startRecording()
-            else binding.audioStatusText.text = "Brak uprawnień do mikrofonu"
+        when (requestCode) {
+            REQ_RECORD_AUDIO -> {
+                val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                if (granted) startRecording()
+                else binding.audioStatusText.text = "Brak uprawnień do mikrofonu"
+            }
+
+            REQ_CAMERA -> {
+                val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                if (granted) openCamera()
+                else Toast.makeText(this, "Brak uprawnień do aparatu", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -265,7 +330,6 @@ class AddNoteActivity : AppCompatActivity() {
 
     private fun stopRecording() {
         val r = recorder ?: return
-
         try {
             r.stop()
         } catch (_: Exception) {
@@ -322,15 +386,25 @@ class AddNoteActivity : AppCompatActivity() {
 
     private fun deleteFileIfExists(path: String?) {
         if (path.isNullOrBlank()) return
-
-        if (path.startsWith("content://")) {
-            runCatching { contentResolver.delete(Uri.parse(path), null, null) }
-            return
-        }
-
         runCatching {
             val f = File(path)
             if (f.exists()) f.delete()
         }
+    }
+    private val REQ_CAMERA = 2001
+
+    private fun hasCameraPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestCameraPermission() {
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(Manifest.permission.CAMERA),
+            REQ_CAMERA
+        )
     }
 }
